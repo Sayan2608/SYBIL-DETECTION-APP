@@ -1,23 +1,39 @@
-from datetime import datetime
-
-
-from datetime import date, timedelta
+# generate_csv.py
 import pandas as pd
-import random
+import numpy as np
 
-def generate_wallet_data(num_samples=200):
-    data = {
-         "wallet_address":  [f"0x{random.randint(10**15, 10**16 -1):x}" for _ in range(num_samples)],
-         "wallet_age_days": [random.randint(1, 1000) for _ in range(num_samples)],
-         "unique_receivers": [random.randint(1, 100) for _ in range(num_samples)],
-         "small_tx_count": [random.randint(1, 50) for _ in range(num_samples)],
-         "avg_tx_value": [round(random.uniform(0.0001, 1.0),5) for _ in range(num_samples)],
-         "avg_gas_used": [random.randint(0, 1) for _ in range(num_samples)],
-         "timestamp": [(date.today()-timedelta(days=random.randint(1,1000))).strftime("%Y-%m-%d") for _ in range(num_samples)],
-         "label": [random.choice([0,1]) for _ in range(num_samples)] # 1 = Sybil , 0 = Normal 
-    }
-    return pd.DataFrame(data)
+# Simulate fake wallet transaction data
+np.random.seed(42)
+num_wallets = 100
 
-df = generate_wallet_data()
-df.to_csv("wallet_data.csv", index=False)
-print("✅ wallet_data.csv created")
+def generate_wallet_data():
+    data = []
+    for i in range(num_wallets):
+        wallet = f"0x{i:040x}"
+        tx_count = np.random.randint(5, 100)
+        small_transfers = np.random.randint(0, tx_count)
+        gas_used = np.random.normal(loc=30000, scale=5000, size=tx_count)
+        tx_values = np.random.exponential(scale=0.01, size=tx_count)
+        timestamps = pd.date_range(end=pd.Timestamp.now(), periods=tx_count).to_pydatetime().tolist()
+        contract_calls = np.random.randint(0, tx_count)
+
+        features = {
+            "wallet": wallet,
+            "tx_count": tx_count,
+            "small_transfer_count": small_transfers,
+            "avg_gas_used": np.mean(gas_used),
+            "avg_tx_value": np.mean(tx_values),
+            "wallet_age_days": (pd.Timestamp.now() - timestamps[0]).days,
+            "contract_interaction_count": contract_calls,
+            "is_sybil": np.random.choice([0, 1], p=[0.7, 0.3])
+        }
+        data.append(features)
+
+    df = pd.DataFrame(data)
+    df.to_csv("wallet_data.csv", index=False)
+    print("✅ wallet_data.csv generated")
+
+generate_wallet_data()
+
+
+
