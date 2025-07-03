@@ -74,6 +74,7 @@ if st.button("Check Wallet") and wallet_address:
             txs["gasUsed"] = txs["gasUsed"].astype(float)
             txs["timeStamp"] = pd.to_datetime(txs["timeStamp"], unit="s")
 
+            # Feature engineering
             wallet_age_days = (pd.Timestamp.now() - txs["timeStamp"].min()).days
             unique_receivers = txs["to"].nunique()
             avg_tx_value = txs["value"].mean()
@@ -81,7 +82,7 @@ if st.button("Check Wallet") and wallet_address:
             avg_gas_used = txs["gasUsed"].mean()
             total_gas = txs["gasUsed"].sum()
 
-            # Prepare prediction
+            # Prediction
             features = pd.DataFrame([{
                 "wallet_age_days": wallet_age_days,
                 "unique_receivers": unique_receivers,
@@ -172,7 +173,7 @@ if st.button("Check Wallet") and wallet_address:
     else:
         st.error("❌ Failed to fetch data from Etherscan.")
 
-# Footer with clickable links
+# Footer
 st.markdown(
     """
     <div class="footer">
