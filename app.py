@@ -135,7 +135,12 @@ if st.button("🔍 Analyze Wallet") and wallet_address:
                 small = (txs["value"] < 0.01).sum()
                 large = (txs["value"] >= 0.01).sum()
                 fig1, ax1 = plt.subplots()
-                ax1.pie([small, large], labels=["<0.01 ETH", "≥0.01 ETH"], autopct="%1.1f%%", colors=["#4CAF50", "#2196F3"])
+                ax1.pie(
+                    [small, large],
+                    labels=["<0.01 ETH", "≥0.01 ETH"],
+                    autopct="%1.1f%%",
+                    colors=["#4CAF50", "#2196F3"]
+                )
                 st.pyplot(fig1)
 
             with tab6:
@@ -162,6 +167,37 @@ if st.button("🔍 Analyze Wallet") and wallet_address:
                 else:
                     st.error("Error fetching ETH balance.")
 
+            # Upsell section
+            st.markdown("---")
+            st.markdown(
+                """
+                <div style="text-align: center; padding: 20px; background-color: #ffffff; border: 1px solid #ddd; border-radius: 8px;">
+                    <h2 style="color: #4CAF50;">🔓 Unlock Full Sybil Analysis</h2>
+                    <p style="font-size: 1.1em;">
+                        Get the <strong>Complete Ethereum Wallet Report</strong> including:
+                    </p>
+                    <ul style="text-align: left; display: inline-block; font-size: 1em;">
+                        <li>✅ All transactions (CSV & PDF)</li>
+                        <li>✅ Full charts & visual dashboards</li>
+                        <li>✅ Detailed risk metrics & recommendations</li>
+                    </ul>
+                    <br><br>
+                    <a href="https://sayanrawl.gumroad.com/l/rhvdu" target="_blank" style="
+                        display: inline-block;
+                        background-color: #4CAF50;
+                        color: white;
+                        text-decoration: none;
+                        padding: 14px 28px;
+                        border-radius: 6px;
+                        font-size: 1.2em;
+                        font-weight: 600;
+                    ">
+                        🛒 Buy Full Sybil Report ($29)
+                    </a>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
         else:
             st.warning("⚠️ No transactions found or invalid wallet.")
     else:
