@@ -6,22 +6,25 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 from generate_report import generate_sybil_report
 
-# Page config
+# Set your admin code
+ADMIN_UNLOCK_CODE = "260804"
+
+# Load ML model
+model = joblib.load("sybil_model.pkl")
+
+# Streamlit config
 st.set_page_config(page_title="Sybil Wallet Checker", layout="wide")
 
 # Custom CSS
 st.markdown(
     """
     <style>
-    h1, h2, h3 {
-        color: #4CAF50;
-    }
     .stButton>button {
         background-color: #4CAF50;
         color: white;
         border-radius: 6px;
-        padding: 0.4em 1em;
-        font-weight: 600;
+        padding: 0.5em 1em;
+        font-weight: bold;
         font-size: 1em;
     }
     .footer {
@@ -32,25 +35,23 @@ st.markdown(
     }
     </style>
     """,
-    unsafe_allow_html=True,
+    unsafe_allow_html=True
 )
 
-# Title
+# Sidebar admin unlock
+st.sidebar.title("Admin")
+admin_code = st.sidebar.text_input("Enter admin unlock code", type="password")
+is_admin = admin_code == ADMIN_UNLOCK_CODE
+
+# Main title
 st.title("🧠 Ethereum Sybil Wallet Checker")
 st.write("Enter an Ethereum wallet address to get a free basic Sybil risk screening.")
 
 # Input
 wallet_address = st.text_input("🔗 **Ethereum Wallet Address**")
 
-# Admin unlock in sidebar
-st.sidebar.header("🔑 Admin")
-admin_code = st.sidebar.text_input("Enter admin unlock code", type="260804")
-
-# Load model
-model = joblib.load("sybil_model.pkl")
-
 if st.button("🔍 Analyze Wallet") and wallet_address:
-    with st.spinner("Fetching data from Etherscan..."):
+    with st.spinner("🔄 Fetching transaction data..."):
         tx_url = (
             f"https://api.etherscan.io/api"
             f"?module=account&action=txlist"
@@ -69,141 +70,105 @@ if st.button("🔍 Analyze Wallet") and wallet_address:
         tx_response = requests.get(tx_url)
         balance_response = requests.get(balance_url)
 
-    if tx_response.status_code == 200:
-        tx_data = tx_response.json()
-        if tx_data["status"] == "1" and tx_data["result"]:
-            txs = pd.DataFrame(tx_data["result"])
-            txs["value"] = txs["value"].astype(float) / 1e18
-            txs["gasUsed"] = txs["gasUsed"].astype(float)
-            txs["timeStamp"] = pd.to_datetime(txs["timeStamp"], unit="s")
+    if tx_response.status_code == 200 and tx_response.json()["status"] == "1":
+        txs = pd.DataFrame(tx_response.json()["result"])
+        txs["value"] = txs["value"].astype(float) / 1e18
+        txs["gasUsed"] = txs["gasUsed"].astype(float)
+        txs["timeStamp"] = pd.to_datetime(txs["timeStamp"], unit="s")
 
-            # Compute features
-            wallet_age_days = (pd.Timestamp.now() - txs["timeStamp"].min()).days
-            unique_receivers = txs["to"].nunique()
-            avg_tx_value = txs["value"].mean()
-            small_tx_count = (txs["value"] < 0.01).sum()
-            avg_gas_used = txs["gasUsed"].mean()
-            total_gas = txs["gasUsed"].sum()
+        # Feature engineering
+        wallet_age_days = (pd.Timestamp.now() - txs["timeStamp"].min()).days
+        avg_tx_value = txs["value"].mean()
+        unique_receivers = txs["to"].nunique()
+        small_tx_count = (txs["value"] < 0.01).sum()
+        avg_gas_used = txs["gasUsed"].mean()
 
-            features = pd.DataFrame([{
-                "wallet_age_days": wallet_age_days,
-                "unique_receivers": unique_receivers,
-                "avg_tx_value": avg_tx_value,
-                "small_tx_count": small_tx_count,
-                "avg_gas_used": avg_gas_used
-            }])
+        features = pd.DataFrame([{
+            "wallet_age_days": wallet_age_days,
+            "unique_receivers": unique_receivers,
+            "avg_tx_value": avg_tx_value,
+            "small_tx_count": small_tx_count,
+            "avg_gas_used": avg_gas_used
+        }])
 
-            prediction = model.predict(features)[0]
+        prediction = model.predict(features)[0]
 
-            # Always show basic results
-            st.subheader("✅ Basic Free Results")
-            col1, col2 = st.columns(2)
-            col1.metric("Wallet Age", f"{wallet_age_days} days")
-            col2.metric("Average Tx Value", f"{avg_tx_value:.5f} ETH")
-
-            if prediction == 1:
-                st.error("🔴 High Sybil Risk detected.")
-            else:
-                st.success("🟢 Low Sybil Risk detected.")
-
-            # If admin unlocked
-            if admin_code == "letmein":
-                st.success("🔓 Admin Mode Active – Full data visible.")
-
-                tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-                    "📈 Value Chart",
-                    "⛽ Gas Chart",
-                    "🍰 Size Distribution",
-                    "📊 Gas Histogram",
-                    "📋 Recent Transactions",
-                    "💰 ETH Balance"
-                ])
-
-                with tab1:
-                    st.header("Transaction Value Over Time")
-                    st.line_chart(txs.set_index("timeStamp")["value"])
-
-                with tab2:
-                    st.header("Gas Used Over Time")
-                    st.bar_chart(txs.set_index("timeStamp")["gasUsed"])
-
-                with tab3:
-                    st.header("Transaction Size Distribution")
-                    small = (txs["value"] < 0.01).sum()
-                    large = (txs["value"] >= 0.01).sum()
-                    fig1, ax1 = plt.subplots()
-                    ax1.pie([small, large], labels=["<0.01 ETH", "≥0.01 ETH"], autopct="%1.1f%%", colors=["#4CAF50", "#2196F3"])
-                    st.pyplot(fig1)
-
-                with tab4:
-                    st.header("Gas Usage Histogram")
-                    fig2, ax2 = plt.subplots()
-                    ax2.hist(txs["gasUsed"], bins=20, color="#4CAF50")
-                    ax2.set_xlabel("Gas Used")
-                    ax2.set_ylabel("Count")
-                    st.pyplot(fig2)
-
-                with tab5:
-                    st.header("Recent Transactions")
-                    st.dataframe(txs[["hash", "from", "to", "value", "gasUsed", "timeStamp"]].tail(10))
-
-                with tab6:
-                    st.header("ETH Balance")
-                    if balance_response.status_code == 200:
-                        balance_data = balance_response.json()
-                        if balance_data["status"] == "1":
-                            eth_balance = float(balance_data["result"]) / 1e18
-                            st.metric("ETH Balance", f"{eth_balance:.4f} ETH")
-                        else:
-                            st.warning("Could not fetch balance.")
-
-                if st.button("📄 Generate PDF Report"):
-                    generate_sybil_report(
-                        wallet_address,
-                        {
-                            "Wallet Age": f"{wallet_age_days} days",
-                            "Avg Tx Value": f"{avg_tx_value:.5f} ETH",
-                            "Unique Receivers": unique_receivers,
-                            "Small Transfers": small_tx_count,
-                            "Avg Gas Used": f"{avg_gas_used:,.0f}"
-                        },
-                        txs,
-                        prediction
-                    )
-                    st.success("PDF report generated. Check your project folder.")
-
-            else:
-                # Show upsell
-                st.subheader("🔒 Full Analysis & PDF Report")
-                st.write("""
-                Upgrade to get:
-                - Full transaction analytics
-                - Gas usage charts
-                - Recent transaction logs
-                - ETH balance tracking
-                - A downloadable PDF report
-                """)
-                st.markdown(
-                    """
-                    <a href="https://sayanrawl.gumroad.com/l/rhvdu" target="_blank">
-                        <button style='background-color:#4CAF50;color:white;padding:10px 20px;border:none;border-radius:5px;font-size:16px;'>
-                            🔓 Unlock Full Report ($29)
-                        </button>
-                    </a>
-                    """,
-                    unsafe_allow_html=True
-                )
-
+        st.subheader("✅ Basic Free Results")
+        st.metric("Wallet Age", f"{wallet_age_days} days")
+        st.metric("Average Tx Value", f"{avg_tx_value:.5f} ETH")
+        if prediction == 1:
+            st.error("🔴 High Sybil Risk detected.")
         else:
-            st.warning("⚠️ No transactions found or invalid wallet.")
+            st.success("🟢 Low Sybil Risk detected.")
+
+        # Admin-only: show full analytics + PDF export
+        if is_admin:
+            st.markdown("---")
+            st.subheader("🔐 Full Wallet Analysis")
+
+            st.metric("Unique Receivers", unique_receivers)
+            st.metric("Small Transfers", small_tx_count)
+            st.metric("Avg Gas Used", f"{avg_gas_used:,.0f}")
+
+            # Value chart
+            st.write("📈 Transaction Value Over Time")
+            st.line_chart(txs.set_index("timeStamp")["value"])
+
+            # Gas chart
+            st.write("⛽ Gas Used Over Time")
+            st.bar_chart(txs.set_index("timeStamp")["gasUsed"])
+
+            # Recent transactions
+            st.write("📋 Recent Transactions")
+            st.dataframe(txs[["hash", "from", "to", "value", "gasUsed", "timeStamp"]].tail(10))
+
+            # ETH balance
+            if balance_response.status_code == 200 and balance_response.json()["status"] == "1":
+                eth_balance = float(balance_response.json()["result"]) / 1e18
+                st.metric("💰 ETH Balance", f"{eth_balance:.4f} ETH")
+
+            # Generate PDF
+            if st.button("📄 Download Full PDF Report"):
+                generate_sybil_report(
+                    wallet_address,
+                    {
+                        "Wallet Age": f"{wallet_age_days} days",
+                        "Avg Tx Value": f"{avg_tx_value:.5f} ETH",
+                        "Unique Receivers": unique_receivers,
+                        "Small Transfers": small_tx_count,
+                        "Avg Gas Used": f"{avg_gas_used:,.0f}"
+                    },
+                    txs,
+                    prediction
+                )
+                with open("sybil_report.pdf", "rb") as f:
+                    st.download_button(
+                        label="📥 Click to Download PDF",
+                        data=f,
+                        file_name="sybil_report.pdf",
+                        mime="application/pdf"
+                    )
+        else:
+            st.markdown("---")
+            st.subheader("🔒 Full Analysis & PDF Report")
+            st.markdown("""
+            **Upgrade to get:**
+            - Full transaction analytics  
+            - Gas usage charts  
+            - Recent transaction logs  
+            - ETH balance tracking  
+            - A downloadable PDF report  
+            """)
+            st.link_button("🔓 Unlock Full Report ($29)", "https://sayanrawl.gumroad.com/l/rhvdu")
+
     else:
-        st.error("❌ Failed to fetch data from Etherscan.")
+        st.error("❌ Could not fetch transactions. Please try a different address.")
 
 # Footer
 st.markdown(
     """
     <div class="footer">
-        © 2025 Sybil Wallet Checker • Built with ❤️ by Sayan Rawl<br>
+        © 2025 Sybil Wallet Checker • Built with ❤️ by Sayan Rawl <br>
         <a href="mailto:sayanrawl7@email.com" target="_blank">Contact</a> |
         <a href="https://twitter.com/RawlSayan58006" target="_blank">Twitter</a>
     </div>
