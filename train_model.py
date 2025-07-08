@@ -1,31 +1,28 @@
-# train_model.py
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
 import joblib
 
-# Load generated data
+# Load your training data
 df = pd.read_csv("wallet_data.csv")
 
+# Show the columns to confirm
+print("Columns in CSV:", df.columns.tolist())
+
 # Features and labels
-features = [ 
-    "tx_count",
-    "small_transfer_count",
-    "avg_gas_used",
-    "avg_tx_value",
+X = df[[
     "wallet_age_days",
-    "contract_interaction_count"
-]
-X = df[features]
-y = df["is_sybil"]
+    "unique_receivers",
+    "avg_tx_value",
+    "small_tx_count",
+    "avg_gas_used"
+]]
+y = df["label"]
 
-# Train/test model
-X_train , X_test , y_train , y_test =  train_test_split(X,y, test_size=0.2, random_state=42)
-
-#train model
+# Train the model
 model = RandomForestClassifier(n_estimators=100, random_state=42)
-model.fit(X_train, y_train)
+model.fit(X, y)
 
-# Save with joblib (preserves feature names)
+# Save the model
 joblib.dump(model, "sybil_model.pkl")
-print("✅ Model trained and saved as sybil_model.pkl")
+
+print("✅ Model trained and saved successfully.")
