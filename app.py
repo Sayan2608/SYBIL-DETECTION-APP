@@ -4,7 +4,6 @@ import requests
 import joblib
 from datetime import datetime
 import matplotlib.pyplot as plt
-from generate_report import generate_sybil_report
 
 # Set your admin code
 ADMIN_UNLOCK_CODE = "260804"
@@ -101,7 +100,7 @@ if st.button("🔍 Analyze Wallet") and wallet_address:
         else:
             st.success("🟢 Low Sybil Risk detected.")
 
-        # Admin-only: show full analytics + PDF export
+        # Admin-only: show full analytics (no PDF)
         if is_admin:
             st.markdown("---")
             st.subheader("🔐 Full Wallet Analysis")
@@ -127,36 +126,15 @@ if st.button("🔍 Analyze Wallet") and wallet_address:
                 eth_balance = float(balance_response.json()["result"]) / 1e18
                 st.metric("💰 ETH Balance", f"{eth_balance:.4f} ETH")
 
-            # Generate and download PDF
-            pdf_bytes = generate_sybil_report(
-                wallet_address,
-                {
-                    "Wallet Age": f"{wallet_age_days} days",
-                    "Avg Tx Value": f"{avg_tx_value:.5f} ETH",
-                    "Unique Receivers": unique_receivers,
-                    "Small Transfers": small_tx_count,
-                    "Avg Gas Used": f"{avg_gas_used:,.0f}"
-                },
-                txs,
-                prediction
-            )
-            st.download_button(
-                label="📥 Click to Download PDF",
-                data=pdf_bytes,
-                file_name="sybil_report.pdf",
-                mime="application/pdf"
-            )
-
         else:
             st.markdown("---")
-            st.subheader("🔒 Full Analysis & PDF Report")
+            st.subheader("🔒 Full Analysis Unlock")
             st.markdown("""
             **Upgrade to get:**
             - Full transaction analytics  
             - Gas usage charts  
             - Recent transaction logs  
             - ETH balance tracking  
-            - A downloadable PDF report  
             """)
             st.link_button("🔓 Unlock Full Report ($29)", "https://your-gumroad-link.com")
 
@@ -174,4 +152,3 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-
