@@ -8,12 +8,12 @@ df = pd.read_csv("wallet_data.csv")
 # Show the columns to confirm
 print("Columns in CSV:", df.columns.tolist())
 
-# Features and labels
+# Features and labels (matching your actual CSV)
 X = df[[
     "wallet_age_days",
     "unique_receivers",
-    "avg_tx_value",
     "small_tx_count",
+    "avg_tx_value",
     "avg_gas_used"
 ]]
 y = df["label"]
