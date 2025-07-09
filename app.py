@@ -5,9 +5,6 @@ import joblib
 from datetime import datetime
 import matplotlib.pyplot as plt
 
-# Admin unlock code
-ADMIN_UNLOCK_CODE = "260804"
-
 # Load ML model
 model = joblib.load("sybil_model.pkl")
 
@@ -37,25 +34,19 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Sidebar for admin unlock
-st.sidebar.title("Admin")
-admin_code = st.sidebar.text_input("Enter admin unlock code", type="password")
-is_admin = admin_code == ADMIN_UNLOCK_CODE
-
 # App title
 st.title("🧠 Ethereum Sybil Wallet Checker")
-st.write("Enter an Ethereum wallet address to get a free basic Sybil risk screening.")
+st.write("Enter an Ethereum wallet address to get a free Sybil risk analysis and full wallet insights.")
 
 # Wallet input
 wallet_address = st.text_input("🔗 **Ethereum Wallet Address**")
 
-# Button
+# Analyze button
 if st.button("🔍 Analyze Wallet"):
     if not wallet_address:
         st.warning("⚠️ Please enter a wallet address before analyzing.")
     else:
         with st.spinner("🔄 Fetching transaction data..."):
-            # Fetch transactions and balance
             tx_url = (
                 f"https://api.etherscan.io/api"
                 f"?module=account&action=txlist"
@@ -87,7 +78,7 @@ if st.button("🔍 Analyze Wallet"):
             small_tx_count = (txs["value"] < 0.01).sum()
             avg_gas_used = txs["gasUsed"].mean()
 
-            # Format features in same order as training
+            # Ensure correct order of features
             features = pd.DataFrame([[
                 wallet_age_days,
                 unique_receivers,
@@ -102,10 +93,10 @@ if st.button("🔍 Analyze Wallet"):
                 "avg_gas_used"
             ])
 
-            # Predict
+            # ML Prediction
             prediction = model.predict(features)[0]
 
-            st.subheader("✅ Basic Free Results")
+            st.subheader("✅ Sybil Risk Result")
             st.metric("Wallet Age", f"{wallet_age_days} days")
             st.metric("Average Tx Value", f"{avg_tx_value:.5f} ETH")
             if prediction == 1:
@@ -113,39 +104,26 @@ if st.button("🔍 Analyze Wallet"):
             else:
                 st.success("🟢 Low Sybil Risk detected.")
 
-            # Admin-only: full data
-            if is_admin:
-                st.markdown("---")
-                st.subheader("🔐 Full Wallet Analysis")
+            # Full analytics (always shown now)
+            st.markdown("---")
+            st.subheader("📊 Full Wallet Analysis")
 
-                st.metric("Unique Receivers", unique_receivers)
-                st.metric("Small Transfers", small_tx_count)
-                st.metric("Avg Gas Used", f"{avg_gas_used:,.0f}")
+            st.metric("Unique Receivers", unique_receivers)
+            st.metric("Small Transfers", small_tx_count)
+            st.metric("Avg Gas Used", f"{avg_gas_used:,.0f}")
 
-                st.write("📈 Transaction Value Over Time")
-                st.line_chart(txs.set_index("timeStamp")["value"])
+            st.write("📈 Transaction Value Over Time")
+            st.line_chart(txs.set_index("timeStamp")["value"])
 
-                st.write("⛽ Gas Used Over Time")
-                st.bar_chart(txs.set_index("timeStamp")["gasUsed"])
+            st.write("⛽ Gas Used Over Time")
+            st.bar_chart(txs.set_index("timeStamp")["gasUsed"])
 
-                st.write("📋 Recent Transactions")
-                st.dataframe(txs[["hash", "from", "to", "value", "gasUsed", "timeStamp"]].tail(10))
+            st.write("📋 Recent Transactions")
+            st.dataframe(txs[["hash", "from", "to", "value", "gasUsed", "timeStamp"]].tail(10))
 
-                if balance_response.status_code == 200 and balance_response.json()["status"] == "1":
-                    eth_balance = float(balance_response.json()["result"]) / 1e18
-                    st.metric("💰 ETH Balance", f"{eth_balance:.4f} ETH")
-
-            else:
-                st.markdown("---")
-                st.subheader("🔒 Full Analysis Unlock")
-                st.markdown("""
-                **Upgrade to get:**
-                - Full transaction analytics  
-                - Gas usage charts  
-                - Recent transaction logs  
-                - ETH balance tracking  
-                """)
-                st.link_button("🔓 Unlock Full Report ($29)", "https://your-gumroad-link.com")
+            if balance_response.status_code == 200 and balance_response.json()["status"] == "1":
+                eth_balance = float(balance_response.json()["result"]) / 1e18
+                st.metric("💰 ETH Balance", f"{eth_balance:.4f} ETH")
 
         else:
             st.error("❌ Could not fetch transactions. Please try a different address.")
