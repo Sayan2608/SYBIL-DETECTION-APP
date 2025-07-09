@@ -159,7 +159,7 @@ if st.button("🔍 Analyze Wallet") and wallet_address:
             - ETH balance tracking  
             - A downloadable PDF report  
             """)
-            st.link_button("🔓 Unlock Full Report ($29)", "https://sayanrawl.gumroad.com/l/rhvdu")
+            st.link_button("🔓 Unlock Full Report ($29)", "https://your-gumroad-link.com")
 
     else:
         st.error("❌ Could not fetch transactions. Please try a different address.")
