@@ -127,27 +127,26 @@ if st.button("🔍 Analyze Wallet") and wallet_address:
                 eth_balance = float(balance_response.json()["result"]) / 1e18
                 st.metric("💰 ETH Balance", f"{eth_balance:.4f} ETH")
 
-            # Generate PDF
-            if st.button("📄 Download Full PDF Report"):
-                generate_sybil_report(
-                    wallet_address,
-                    {
-                        "Wallet Age": f"{wallet_age_days} days",
-                        "Avg Tx Value": f"{avg_tx_value:.5f} ETH",
-                        "Unique Receivers": unique_receivers,
-                        "Small Transfers": small_tx_count,
-                        "Avg Gas Used": f"{avg_gas_used:,.0f}"
-                    },
-                    txs,
-                    prediction
-                )
-                with open("sybil_report.pdf", "rb") as f:
-                    st.download_button(
-                        label="📥 Click to Download PDF",
-                        data=f,
-                        file_name="sybil_report.pdf",
-                        mime="application/pdf"
-                    )
+            # Generate and download PDF
+            pdf_bytes = generate_sybil_report(
+                wallet_address,
+                {
+                    "Wallet Age": f"{wallet_age_days} days",
+                    "Avg Tx Value": f"{avg_tx_value:.5f} ETH",
+                    "Unique Receivers": unique_receivers,
+                    "Small Transfers": small_tx_count,
+                    "Avg Gas Used": f"{avg_gas_used:,.0f}"
+                },
+                txs,
+                prediction
+            )
+            st.download_button(
+                label="📥 Click to Download PDF",
+                data=pdf_bytes,
+                file_name="sybil_report.pdf",
+                mime="application/pdf"
+            )
+
         else:
             st.markdown("---")
             st.subheader("🔒 Full Analysis & PDF Report")
@@ -175,3 +174,4 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
