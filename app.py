@@ -1,9 +1,8 @@
 import streamlit as st
-from turtle import st
 from chain_api import fetch_wallet_data
 import pandas as pd
 
-# Page config
+# Set page configuration
 st.set_page_config(page_title="Sybil Checker", layout="wide")
 
 # Title and instructions
@@ -43,7 +42,7 @@ if st.button("🔍 Analyze Wallet") and wallet_address:
         if txs.empty:
             st.warning("No transactions found for this address.")
         else:
-            # Basic stats
+            # Basic metrics
             st.subheader("✅ Wallet Analysis Results")
             st.metric("Wallet Age (days)", result["features"]["wallet_age_days"])
             st.metric("Average Tx Value", f"{result['features']['avg_tx_value']:.5f}")
