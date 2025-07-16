@@ -47,31 +47,68 @@ if address and signature:
             )
             st.info("This wallet has no transactions and is automatically marked as Sybil.")
         else:
-            df = pd.DataFrame([features])
+            # Extract feature values for manual rules
+            age = features["wallet_age_days"]
+            tx_count = features["tx_count"]
+            small_tx = features["small_transfer_count"]
+            avg_value = features["avg_tx_value"]
+            contract_count = features["contract_interaction_count"]
 
-            # Prepare features for model
-            df_model = df[[
-                "wallet_age_days",
-                "tx_count",
-                "small_transfer_count",
-                "avg_tx_value",
-                "avg_gas_used",
-                "contract_interaction_count"
-            ]]
+            # Manual rule checks
+            rule_sybil = False
+            rule_reasons = []
 
-            # Predict
-            prediction = model.predict(df_model)[0]
-            prediction_text = "❌ Sybil Wallet" if prediction else "✅ Legit Wallet"
-            prediction_color = "red" if prediction else "green"
+            if age < 30:
+                rule_sybil = True
+                rule_reasons.append("Wallet age < 30 days")
 
-            st.markdown(
-                f"<h3>Prediction: <span style='color:{prediction_color};'>{prediction_text}</span></h3>",
-                unsafe_allow_html=True
-            )
+            if tx_count < 3:
+                rule_sybil = True
+                rule_reasons.append("Transaction count < 3")
 
-            # Show feature table
-            st.markdown("**Behavioral Features Used in Prediction:**")
-            st.dataframe(df_model.T.rename(columns={0: "Value"}))
+            if small_tx > 100:
+                rule_sybil = True
+                rule_reasons.append("More than 100 small transfers")
+
+            if avg_value < 0.01:
+                rule_sybil = True
+                rule_reasons.append("Average transaction value < 0.01 ETH")
+
+            if contract_count == 0:
+                rule_sybil = True
+                rule_reasons.append("No contract interactions")
+
+            if rule_sybil:
+                st.markdown(
+                    f"<h3>Prediction: <span style='color:red;'>❌ Sybil Wallet (Rule-Based)</span></h3>",
+                    unsafe_allow_html=True
+                )
+                st.warning("Reasons: " + ", ".join(rule_reasons))
+            else:
+                # Prepare features for model
+                df = pd.DataFrame([features])
+                df_model = df[[
+                    "wallet_age_days",
+                    "tx_count",
+                    "small_transfer_count",
+                    "avg_tx_value",
+                    "avg_gas_used",
+                    "contract_interaction_count"
+                ]]
+
+                # Predict
+                prediction = model.predict(df_model)[0]
+                prediction_text = "❌ Sybil Wallet" if prediction else "✅ Legit Wallet"
+                prediction_color = "red" if prediction else "green"
+
+                st.markdown(
+                    f"<h3>Prediction: <span style='color:{prediction_color};'>{prediction_text}</span></h3>",
+                    unsafe_allow_html=True
+                )
+
+                # Show feature table
+                st.markdown("**Behavioral Features Used in Prediction:**")
+                st.dataframe(df_model.T.rename(columns={0: "Value"}))
     else:
         st.error(f"Error fetching transactions: {result['error']}")
 else:
