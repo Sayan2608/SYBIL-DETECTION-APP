@@ -73,8 +73,23 @@ def fetch_wallet_data(address):
             except Exception:
                 result = []
 
+            # ✅ If still no transactions, return success=True and Sybil flag
             if not isinstance(result, list) or len(result) == 0:
-                return {"success": False, "error": "No transactions found in any API."}
+                return {
+                    "success": True,
+                    "data": pd.DataFrame(),
+                    "features": {
+                        "wallet_age_days": 0,
+                        "tx_count": 0,
+                        "small_transfer_count": 0,
+                        "avg_tx_value": 0,
+                        "avg_gas_used": 0,
+                        "unique_receivers": 0,
+                        "contract_interaction_count": 0,
+                        "is_sybil_no_transactions": True,
+                        "is_contract": is_contract(address)
+                    }
+                }
 
             df = pd.json_normalize(result)
             df["timestamp"] = pd.to_datetime(df["block_timestamp"], errors="coerce")
@@ -85,7 +100,10 @@ def fetch_wallet_data(address):
         df = pd.DataFrame(txs)
         df["timestamp"] = pd.to_datetime(df["timeStamp"].astype(int), unit="s", errors="coerce")
 
+    # Filter any null timestamps
     df = df[df["timestamp"].notnull()]
+
+    # ✅ Handle case where transactions exist but all timestamps are invalid
     if df.empty:
         return {
             "success": True,
@@ -103,6 +121,7 @@ def fetch_wallet_data(address):
             }
         }
 
+    # Compute features
     wallet_age_days = (pd.Timestamp.utcnow().tz_localize(None) - df["timestamp"].min().tz_localize(None)).days
     avg_tx_value = df["value"].astype(float).mean()
     unique_receivers = df["to"].nunique()
@@ -132,3 +151,4 @@ def fetch_wallet_data(address):
             "is_contract": is_contract(address)
         }
     }
+
