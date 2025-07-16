@@ -34,6 +34,3 @@ def generate_wallet_data():
     print("✅ wallet_data.csv generated")
 
 generate_wallet_data()
-
-
-
