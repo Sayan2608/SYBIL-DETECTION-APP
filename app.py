@@ -38,31 +38,40 @@ if address and signature:
 
     if result["success"]:
         features = result["features"]
-        df = pd.DataFrame([features])
 
-        # Prepare features for model
-        df_model = df[[
-            "wallet_age_days",
-            "tx_count",
-            "small_transfer_count",
-            "avg_tx_value",
-            "avg_gas_used",
-            "contract_interaction_count"
-        ]]
+        # If there are no transactions, auto-mark as Sybil
+        if features["tx_count"] == 0:
+            st.markdown(
+                "<h3 style='color:red;'>Prediction: ❌ Sybil Wallet</h3>",
+                unsafe_allow_html=True
+            )
+            st.info("This wallet has no transactions and is automatically marked as Sybil.")
+        else:
+            df = pd.DataFrame([features])
 
-        # Predict
-        prediction = model.predict(df_model)[0]
-        prediction_text = "🛑 Sybil Detected" if prediction else "✅ Legit Wallet"
-        prediction_color = "red" if prediction else "green"
+            # Prepare features for model
+            df_model = df[[
+                "wallet_age_days",
+                "tx_count",
+                "small_transfer_count",
+                "avg_tx_value",
+                "avg_gas_used",
+                "contract_interaction_count"
+            ]]
 
-        st.markdown(
-            f"<h3>Prediction: <span style='color:{prediction_color};'>{prediction_text}</span></h3>",
-            unsafe_allow_html=True
-        )
+            # Predict
+            prediction = model.predict(df_model)[0]
+            prediction_text = "❌ Sybil Wallet" if prediction else "✅ Legit Wallet"
+            prediction_color = "red" if prediction else "green"
 
-        # Show feature table
-        st.markdown("**Behavioral Features Used in Prediction:**")
-        st.dataframe(df_model.T.rename(columns={0: "Value"}))
+            st.markdown(
+                f"<h3>Prediction: <span style='color:{prediction_color};'>{prediction_text}</span></h3>",
+                unsafe_allow_html=True
+            )
+
+            # Show feature table
+            st.markdown("**Behavioral Features Used in Prediction:**")
+            st.dataframe(df_model.T.rename(columns={0: "Value"}))
     else:
         st.error(f"Error fetching transactions: {result['error']}")
 else:
@@ -79,4 +88,3 @@ st.markdown("""
   <p style="color:#888;">&copy; 2025 Sayan Rawl. All rights reserved.</p>
 </div>
 """, unsafe_allow_html=True)
-
