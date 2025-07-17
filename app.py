@@ -3,9 +3,13 @@ from wallet_component import wallet_signature
 from fetch_wallet_data import fetch_wallet_data
 import joblib
 import pandas as pd
+from db import init_db, insert_verification  # ✅ NEW
 
 # Load the trained model
 model = joblib.load("sybil_model.pkl")
+
+# Initialize the database
+init_db()
 
 st.set_page_config(page_title="Sybil Wallet Checker", layout="centered")
 
@@ -46,6 +50,10 @@ if address and signature:
                 unsafe_allow_html=True
             )
             st.info("This wallet has no transactions and is automatically marked as Sybil.")
+
+            # ✅ Store result
+            insert_verification(address, signature, features, "Sybil")
+
         else:
             # Extract feature values for manual rules
             age = features["wallet_age_days"]
@@ -84,6 +92,10 @@ if address and signature:
                     unsafe_allow_html=True
                 )
                 st.warning("Reasons: " + ", ".join(rule_reasons))
+
+                # ✅ Store result
+                insert_verification(address, signature, features, "Sybil")
+
             else:
                 # Prepare features for model
                 df = pd.DataFrame([features])
@@ -98,6 +110,7 @@ if address and signature:
 
                 # Predict
                 prediction = model.predict(df_model)[0]
+                prediction_label = "Sybil" if prediction else "Legit"
                 prediction_text = "❌ Sybil Wallet" if prediction else "✅ Legit Wallet"
                 prediction_color = "red" if prediction else "green"
 
@@ -109,6 +122,10 @@ if address and signature:
                 # Show feature table
                 st.markdown("**Behavioral Features Used in Prediction:**")
                 st.dataframe(df_model.T.rename(columns={0: "Value"}))
+
+                # ✅ Store result
+                insert_verification(address, signature, features, prediction_label)
+
     else:
         st.error(f"Error fetching transactions: {result['error']}")
 else:
