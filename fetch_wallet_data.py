@@ -27,7 +27,9 @@ def fetch_wallet_data(address):
     covalent_key = st.secrets["api"]["covalent"]
     moralis_key = st.secrets["api"]["moralis"]
 
-    # Step 1: Etherscan
+    # ------------------------------
+    # 1️⃣ Etherscan
+    # ------------------------------
     base_url = "https://api.etherscan.io/api"
     params = {
         "module": "account",
@@ -43,17 +45,23 @@ def fetch_wallet_data(address):
         r = requests.get(base_url, params=params, timeout=10)
         data = r.json()
         txs = data.get("result", [])
-    except Exception:
+        print("📦 Etherscan tx count:", len(txs))
+    except Exception as e:
+        print("❌ Etherscan error:", e)
         txs = []
 
-    # Step 2: Covalent fallback
+    # ------------------------------
+    # 2️⃣ Covalent Fallback
+    # ------------------------------
     if not isinstance(txs, list) or len(txs) == 0:
         url = f"https://api.covalenthq.com/v1/1/address/{address}/transactions_v2/"
         try:
             r = requests.get(url, params={"key": covalent_key}, timeout=10)
             data = r.json()
             items = data.get("data", {}).get("items", [])
-        except Exception:
+            print("📦 Covalent tx count:", len(items))
+        except Exception as e:
+            print("❌ Covalent error:", e)
             items = []
 
         if isinstance(items, list) and len(items) > 0:
@@ -61,19 +69,22 @@ def fetch_wallet_data(address):
             df["timestamp"] = pd.to_datetime(df["block_signed_at"], errors="coerce")
             df["value"] = df["value"].astype(float)
             df["to"] = df["to_address"]
-            df["gasUsed"] = df.get("gas_spent", 0)
+            df["gasUsed"] = df.get("gas_spent", 0).astype(float)
         else:
-            # Step 3: Moralis fallback
+            # ------------------------------
+            # 3️⃣ Moralis Fallback
+            # ------------------------------
             url = f"https://deep-index.moralis.io/api/v2.2/{address}/transactions?chain=eth"
             headers = {"X-API-Key": moralis_key}
             try:
                 r = requests.get(url, headers=headers, timeout=10)
                 data = r.json()
                 result = data.get("result", [])
-            except Exception:
+                print("📦 Moralis tx count:", len(result))
+            except Exception as e:
+                print("❌ Moralis error:", e)
                 result = []
 
-            # ✅ If still no transactions, return success=True and Sybil flag
             if not isinstance(result, list) or len(result) == 0:
                 return {
                     "success": True,
@@ -95,16 +106,19 @@ def fetch_wallet_data(address):
             df["timestamp"] = pd.to_datetime(df["block_timestamp"], errors="coerce")
             df["value"] = df["value"].astype(float)
             df["to"] = df["to_address"]
-            df["gasUsed"] = df.get("receipt_gas_used", 0)
+            df["gasUsed"] = df.get("receipt_gas_used", 0).astype(float)
     else:
         df = pd.DataFrame(txs)
         df["timestamp"] = pd.to_datetime(df["timeStamp"].astype(int), unit="s", errors="coerce")
+        df["value"] = df["value"].astype(float)
+        df["gasUsed"] = df.get("gasUsed", 0).astype(float)
 
-    # Filter any null timestamps
+    # ------------------------------
+    # ✅ Final Cleanup & Feature Calculation
+    # ------------------------------
     df = df[df["timestamp"].notnull()]
-
-    # ✅ Handle case where transactions exist but all timestamps are invalid
     if df.empty:
+        print("⚠️ All timestamps null or invalid — treating as Sybil")
         return {
             "success": True,
             "data": pd.DataFrame(),
@@ -121,14 +135,14 @@ def fetch_wallet_data(address):
             }
         }
 
-    # Compute features
-    wallet_age_days = (pd.Timestamp.utcnow().tz_localize(None) - df["timestamp"].min().tz_localize(None)).days
-    avg_tx_value = df["value"].astype(float).mean()
+    wallet_age_days = (pd.Timestamp.utcnow() - df["timestamp"].min()).days
+    avg_tx_value = df["value"].mean()
     unique_receivers = df["to"].nunique()
-    small_tx_count = (df["value"].astype(float) < 0.01 * 1e18).sum()
-    avg_gas_used = df["gasUsed"].astype(float).mean() if "gasUsed" in df.columns else 0
+    small_tx_count = (df["value"] < 0.01 * 1e18).sum()
+    avg_gas_used = df["gasUsed"].mean()
     tx_count = len(df)
 
+    # Count contract interactions
     if "functionName" in df.columns:
         contract_calls = df["functionName"].notnull().sum()
     elif "input" in df.columns:
@@ -151,4 +165,3 @@ def fetch_wallet_data(address):
             "is_contract": is_contract(address)
         }
     }
-
