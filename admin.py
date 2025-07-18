@@ -1,19 +1,43 @@
-# admin.py
-
 import streamlit as st
 import sqlite3
 import pandas as pd
 
-# Configuration
-st.set_page_config(page_title="Admin Dashboard", layout="wide")
+st.set_page_config(page_title="Admin Dashboard", layout="wide", page_icon="🛡️")
 
-# -------------------------------
-# Authentication (Passcode)
-# -------------------------------
+# -------------------------
+# Space-Themed Styling
+# -------------------------
+st.markdown("""
+    <style>
+    .stApp {
+        background: linear-gradient(145deg, #101928, #1c2b3a);
+        color: white;
+    }
+    .block-container {
+        padding: 2rem;
+        background-color: rgba(0, 0, 0, 0.65);
+        border-radius: 12px;
+        box-shadow: 0px 0px 15px #6c5ce7;
+    }
+    .stButton > button {
+        background-color: #6c5ce7;
+        color: white;
+        font-weight: bold;
+        border-radius: 10px;
+    }
+    h1, h2, h3 {
+        color: #ffffff !important;
+        text-shadow: 0px 0px 8px #6c5ce7;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# -------------------------
+# Authentication
+# -------------------------
 st.title("🛡️ Admin Dashboard - Sybil Wallet Verifications")
 
-ADMIN_CODE = "260804"  # 🔑 Set your secret admin passcode here
-
+ADMIN_CODE = "260804"
 passcode = st.text_input("Enter Admin Passcode", type="password")
 
 if passcode != ADMIN_CODE:
@@ -22,9 +46,9 @@ if passcode != ADMIN_CODE:
 
 st.success("✅ Access granted!")
 
-# -------------------------------
-# Load Data from DB
-# -------------------------------
+# -------------------------
+# Load Verification Records
+# -------------------------
 conn = sqlite3.connect("wallet_verifications.db")
 cursor = conn.cursor()
 
@@ -36,7 +60,6 @@ try:
         st.markdown("### ✅ Verified Wallets Data")
         st.dataframe(df, use_container_width=True)
 
-        # Download button
         csv = df.to_csv(index=False)
         st.download_button(
             label="📥 Download CSV",
