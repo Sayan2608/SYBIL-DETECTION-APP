@@ -84,7 +84,7 @@ We’re actively looking for:
 - Feedback from Sybil attack victims
 
 📧 sayanrawl.eth@proton.me  
-🐦 Twitter: @RawlSayan58006
+🐦 Twitter: https://x.com/RawlSayan58006?s=09
 
 ---
 
