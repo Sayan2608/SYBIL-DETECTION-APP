@@ -1,84 +1,102 @@
 # 🧠 Ethereum Sybil Wallet Checker
 
-A Sybil detection tool that analyzes any Ethereum wallet using both rule-based logic and a machine learning model. Built to help DAOs, airdrop campaigns, and web3 communities fight Sybil attacks.
+A Sybil detection tool that analyzes any Ethereum wallet using both rule-based logic and a machine learning model.  
+Built to help DAOs, airdrop campaigns, and web3 communities fight Sybil attacks.
 
-👉 [Try the App](https://sybil-wallet-checker.streamlit.app/)
+👉 [Try the Live App](https://sybil-detection-app-4yrprxrpg5ln6rzpyvh5sy.streamlit.app/)  
+👉 [Landing Page](https://github.com/Sayan2608/sybil-landing-page)
+
+---
 
 ## 🔍 Features
 
 - 🦊 Connect via MetaMask
 - ✍️ Wallet signature authentication
-- 📊 Real-time Sybil analysis
-- 🧠 Rule-based + ML detection
+- 📊 Real-time Sybil detection
+- 🧠 Rule-based + ML classification
 - 🎨 Space-themed, futuristic UI
-- 📁 Admin dashboard to manage wallet entries
+- 🔐 Admin dashboard to manage verified wallets
+
+---
 
 ## 🧪 How It Works
 
-1. User connects their Ethereum wallet.
-2. The app fetches wallet data (age, tx count, gas usage, etc.)
-3. Applies rule-based filters (e.g. new wallet, no txs = likely Sybil)
-4. If passed, ML model makes final prediction
-5. Result shown + saved to backend for admins
+1. User connects their Ethereum wallet and signs a message.
+2. The app fetches wallet data (wallet age, tx count, gas usage, etc.)
+3. Rule-based filters are applied (e.g. new wallet, 0 txs = likely Sybil)
+4. If passed, an ML model makes the final prediction
+5. Result is shown + saved to the backend (for DAO admins)
 
-## 🔐 Built For
+---
 
-- DAOs & governance communities
-- Airdrop and retroactive funding programs
-- NFT mints and whitelists
-- Web3 teams dealing with Sybil abuse
+## 🎯 Built For
+
+- DAOs & governance platforms
+- Airdrop and retro funding programs
+- NFT allowlists and launchpads
+- Web3 teams battling Sybil attacks
+
+---
 
 ## ⚙️ Tech Stack
 
 - 🐍 Python
 - 📦 Streamlit
-- 🤖 Scikit-learn ML
-- 📡 Ethereum JSON-RPC
-- 📁 Local DB (CSV/JSON, easily replaceable with SQL)
-- 🎨 Custom CSS styling
+- 🤖 Scikit-learn (ML model)
+- 📡 Ethereum RPC / Etherscan API
+- 💽 SQLite (or CSV as fallback)
+- 🎨 Custom CSS + JS wallet injection
 
-## 📚 Folder Structure
+---
+
+## 📁 Folder Structure
 
 ```
 📁 SybilWalletChecker/
 │
-├── app.py              # Main Streamlit app
-├── admin.py            # Admin dashboard for reviewing results
-├── fetch_wallet_data.py# Ethereum wallet data parser
-├── train_model.py      # ML model training
-├── sybil_model.pkl     # Saved trained ML model
-├── assets/             # Images, robot mascot, backgrounds
-└── README.md           # Project documentation
+├── app.py               # Main app UI
+├── admin.py             # Admin dashboard for DAO teams
+├── fetch_wallet_data.py # On-chain feature extractor
+├── train_model.py       # ML model training
+├── sybil_model.pkl      # Trained classifier
+├── db.py                # Database handler (SQLite)
+├── wallet_component.py  # MetaMask wallet connector
+├── assets/              # Backgrounds, robot images
+└── README.md
 ```
 
-## 🏛️ Looking for Support
+---
 
-I'm currently seeking:
-- DAO or protocol partnerships
-- Grant or retro funding opportunities
-- Feedback from web3 security researchers
+## 🧠 Future Roadmap
 
-If you're part of a DAO or web3 project impacted by Sybil attacks, let’s collaborate!
+- 💾 SQL + IPFS/Arweave support
+- 🔢 Sybil score (0-100) instead of binary label
+- 📄 Export PDF reports
+- 🌐 Multi-chain support (ZKSync, Arbitrum, Base, StarkNet)
 
-📧 Contact: sayanrawl.eth@proton.me  
-🐦 Twitter: [@your_handle]()
+---
+
+## 🏛️ Seeking Partners
+
+We’re actively looking for:
+- DAO & protocol partners
+- Web3 grants or retroactive funding
+- Feedback from Sybil attack victims
+
+📧 sayanrawl.eth@proton.me  
+🐦 Twitter: @RawlSayan58006
 
 ---
 
 ## 💻 Run Locally
 
 ```bash
-git clone https://github.com/sayanrawl/SybilWalletChecker.git
-cd SybilWalletChecker
+git clone https://github.com/Sayan2608/SYBIL-DETECTION-APP
+cd SYBIL-DETECTION-APP
 pip install -r requirements.txt
 streamlit run app.py
 ```
 
 ---
 
-## 🛠️ Coming Soon
-
-- 💾 Full SQL + IPFS/Arweave data storage
-- 🧬 Sybil scoring instead of binary labels
-- 📑 PDF reports export
-- 🔗 Multi-chain support (ZKSync, Arbitrum, Base)
+⭐ Star this repo if you support Sybil-resistance tools for Web3.
