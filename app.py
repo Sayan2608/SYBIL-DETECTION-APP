@@ -10,7 +10,7 @@ model = joblib.load("sybil_model.pkl")
 init_db()
 
 # Page Config
-st.set_page_config(page_title="Ethereum Sybil Wallet Checker", layout="centered")
+st.set_page_config(page_title="TrustProof", layout="centered")
 
 # Custom Glowing CSS Theme
 st.markdown("""
@@ -78,8 +78,12 @@ button, .stButton>button {
 </style>
 """, unsafe_allow_html=True)
 
-# Title
-st.markdown("<h1 style='text-align: center;'>🤖 Ethereum Sybil Wallet Checker</h1>", unsafe_allow_html=True)
+# Title + Tagline
+st.markdown("""
+<h1 style='text-align: center;'>🤖 TrustProof</h1>
+<h4 style='text-align: center; color: #cccccc;'>Detect Sybil wallets. Build trust in your community.</h4>
+<br>
+""", unsafe_allow_html=True)
 
 # Section 1: Wallet Signature
 st.markdown("<div class='box'><h3>1️⃣ Connect Your Wallet</h3>", unsafe_allow_html=True)
@@ -173,6 +177,6 @@ st.markdown("""
 <div style="text-align:center; font-size:0.9em; color:#888;">
   <p>💻 <a href="mailto:sayanrawl7@email.com">Contact Developer</a> | 
   <a href="https://github.com/Sayan2608/SYBIL-DETECTION-APP" target="_blank">GitHub Repo</a></p>
-  <p>© 2025 Sayan Rawl</p>
+  <p>© 2025 Sayan Rawl — Powered by TrustProof</p>
 </div>
 """, unsafe_allow_html=True)
