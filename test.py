@@ -1,11 +1,11 @@
 import streamlit as st
 from streamlit_js_eval import streamlit_js_eval
 
-st.set_page_config(page_title="Wallet Connect Test", layout="centered")
+st.set_page_config(page_title="Test Wallet")
 st.title("🔑 Wallet Connect Test")
 
 address = streamlit_js_eval(
-    js_expressions="""
+    js_code="""
         async () => {
             if (typeof window.ethereum === "undefined") {
                 return "No wallet found";
@@ -15,12 +15,11 @@ address = streamlit_js_eval(
             return accounts[0];
         }
     """,
-    key="wallet_connect"
+    key="wallet_connect_test",
+    label="wallet_connect_test",  # ✅ Important line!
 )
 
-if address is None:
-    st.info("⏳ Waiting for wallet connection...")
-elif address == "No wallet found":
-    st.error("❌ No Ethereum wallet detected. Please install MetaMask.")
+if address:
+    st.success(f"✅ Connected: {address}")
 else:
-    st.success(f"✅ Connected wallet: {address}")
+    st.warning("⚠️ No wallet connected.")

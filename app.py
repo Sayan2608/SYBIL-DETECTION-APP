@@ -1,113 +1,57 @@
 import streamlit as st
-from wallet_component import wallet_signature
-from fetch_wallet_data import fetch_wallet_data
+from streamlit.components.v1 import html
+from wallet_component import wallet_signature # type: ignore
+from fetch_wallet_data import fetch_wallet_data # type: ignore
 import joblib
 import pandas as pd
-from db import init_db, insert_verification
+from db import insert_verification # type: ignore
+import warnings
 
-# Load ML model
-model = joblib.load("sybil_model.pkl")
-
-# Page config
+# ============ APP INIT ============
 st.set_page_config(page_title="TrustProof", layout="centered")
+st.title("✅ TrustProof Sybil Detection App")
 
-# ================= CUSTOM CSS =================
-st.markdown("""
-    <style>
-    /* Background setup with cool image */
-    .stApp {
-        background: url("https://images.unsplash.com/photo-1507525428034-b723cf961d3e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1950&q=80") 
-                    no-repeat center center fixed;
-        background-size: cover;
-        position: relative;
-        color: #f1f5f9;
-    }
+# ============ WARNINGS ============
+warnings.filterwarnings("ignore")  # Optional: Hides the sklearn version warning
 
-    /* Semi-transparent dark overlay */
-    .stApp::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        height: 100%;
-        width: 100%;
-        background: rgba(0, 0, 0, 0.65);
-        z-index: 0;
-    }
+# ============ LOAD MODEL WITH DEBUG ============
+@st.cache_resource
+def load_model():
+    try:
+        model = joblib.load("sybil_model.pkl")
+        return model
+    except Exception as e:
+        st.error(f"❌ Model loading failed: {e}")
+        return None
 
-    /* Make sure content sits above overlay */
-    .stApp > div {
-        position: relative;
-        z-index: 1;
-    }
+model = load_model()
 
-    /* Box styling */
-    .box {
-        background: rgba(17, 24, 39, 0.85);
-        padding: 20px;
-        border-radius: 12px;
-        margin-bottom: 20px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    }
+if model is not None:
+    st.success("✅ ML model loaded successfully")
+else:
+    st.stop()  # Stop app if model is not loaded
 
-    /* Result box */
-    .result-box {
-        font-size: 22px;
-        font-weight: bold;
-        padding: 12px;
-        margin-top: 15px;
-        border-radius: 10px;
-        background: rgba(0,0,0,0.5);
-        text-align: center;
-        animation: fadeIn 0.8s ease-in-out;
-    }
-
-    /* FAQ */
-    .faq-box {
-        background: rgba(30, 41, 59, 0.85);
-        padding: 15px;
-        border-radius: 10px;
-        font-size: 15px;
-    }
-
-    /* Footer */
-    .footer {
-        text-align: center;
-        font-size: 0.9em;
-        color: #bbb;
-        margin-top: 30px;
-    }
-    .footer a {
-        color: #93c5fd;
-        text-decoration: none;
-    }
-    .footer a:hover {
-        text-decoration: underline;
-    }
-
-    /* Fade-in animation */
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-
-# ================== HEADER ==================
+# ============ HEADER ============
 st.markdown("<h1>TrustProof</h1>", unsafe_allow_html=True)
 st.markdown("<h4>Ethereum Sybil Wallet Checker</h4>", unsafe_allow_html=True)
 
-# ================== WALLET SIGNATURE ==================
+# ============ STEP 1: Wallet Signature ============
 st.markdown("<div class='box'><h3>1️⃣ Connect Your Wallet</h3>", unsafe_allow_html=True)
-address, signature = wallet_signature()
+
+try:
+    address, signature = wallet_signature()
+    st.success("✅ Wallet loaded")
+except Exception as e:
+    st.error(f"❌ Wallet signature error: {e}")
+    address = None
+    signature = None
+
 st.markdown("</div>", unsafe_allow_html=True)
 
-# ================== SYBIL DETECTION ==================
+# ============ STEP 2: Detection Logic ============
 if address and signature:
     st.markdown("<div class='box'><h3>2️⃣ Detection Result</h3>", unsafe_allow_html=True)
-    st.success("✅ Wallet verified successfully!")
-    st.write(f"Wallet Address: {address}")
+    st.write(f"🔗 Wallet Address: {address}")
 
     result = fetch_wallet_data(address)
 
@@ -121,7 +65,7 @@ if address and signature:
             rule_sybil = False
             reasons = []
 
-            # Manual Rules
+            # ----- Manual Rule Check -----
             if features["wallet_age_days"] < 30:
                 rule_sybil = True; reasons.append("Wallet age < 30 days")
             if features["tx_count"] < 3:
@@ -138,6 +82,7 @@ if address and signature:
                 st.warning("Rule-based Reasons: " + ", ".join(reasons))
                 insert_verification(address, signature, features, "Sybil")
             else:
+                # ----- ML Model Prediction -----
                 df = pd.DataFrame([features])
                 df_model = df[[
                     "wallet_age_days",
@@ -147,22 +92,27 @@ if address and signature:
                     "avg_gas_used",
                     "contract_interaction_count"
                 ]]
-                prediction = model.predict(df_model)[0]
-                label = "Legit" if prediction == 0 else "Sybil"
-                emoji = "✅" if label == "Legit" else "❌"
-                box_class = "legit" if label == "Legit" else "sybil"
-                st.markdown(f"<div class='result-box {box_class}'>{emoji} {label} Wallet</div>", unsafe_allow_html=True)
-                insert_verification(address, signature, features, label)
+                try:
+                    prediction = model.predict(df_model)[0]
+                    label = "Legit" if prediction == 0 else "Sybil"
+                    emoji = "✅" if label == "Legit" else "❌"
+                    box_class = "legit" if label == "Legit" else "sybil"
+                    st.markdown(f"<div class='result-box {box_class}'>{emoji} {label} Wallet</div>", unsafe_allow_html=True)
+                    insert_verification(address, signature, features, label)
 
-                st.markdown("#### Features Used:")
-                st.dataframe(df_model.T.rename(columns={0: "Value"}))
+                    st.markdown("#### Features Used:")
+                    st.dataframe(df_model.T.rename(columns={0: "Value"}))
+                except Exception as e:
+                    st.error(f"❌ ML prediction error: {e}")
+
     else:
-        st.error(f"Error fetching data: {result['error']}")
+        st.error(f"❌ Error fetching wallet data: {result['error']}")
     st.markdown("</div>", unsafe_allow_html=True)
-else:
-    st.warning("Please connect and sign with your wallet.")
 
-# ================== FAQ ==================
+else:
+    st.warning("⚠️ Please connect and sign with your wallet to continue.")
+
+# ============ FAQ SECTION ============
 with st.expander("❓ FAQ - Frequently Asked Questions"):
     st.markdown("""
     <div class="faq-box">
@@ -177,11 +127,81 @@ with st.expander("❓ FAQ - Frequently Asked Questions"):
     </div>
     """, unsafe_allow_html=True)
 
-# ================== FOOTER ==================
+# ============ FOOTER ============
 st.markdown("""
 <div class="footer">
   <p>💻 <a href="mailto:sayanrawl7@email.com">Contact Developer</a> | 
   <a href="https://github.com/Sayan2608/SYBIL-DETECTION-APP" target="_blank">GitHub Repo</a></p>
   <p>© 2025 Sayan Rawl</p>
 </div>
+""", unsafe_allow_html=True)
+
+# ============ CUSTOM CSS ============
+st.markdown("""
+<style>
+/* Background */
+.stApp {
+    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+    color: white;
+}
+
+/* Headings */
+h1 {
+    color: #FFD700;
+    text-align: center;
+    font-size: 42px !important;
+}
+h4 {
+    color: #87CEEB;
+    text-align: center;
+}
+
+/* Box styling */
+.box {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 15px;
+    margin: 15px 0;
+}
+
+/* Result styles */
+.result-box {
+    text-align: center;
+    padding: 15px;
+    border-radius: 12px;
+    font-size: 20px;
+    margin: 15px 0;
+    font-weight: bold;
+}
+.result-box.legit {
+    background: #4CAF50;
+    color: white;
+}
+.result-box.sybil {
+    background: #FF4C4C;
+    color: white;
+}
+
+/* FAQ box */
+.faq-box {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    padding: 12px;
+}
+
+/* Footer */
+.footer {
+    text-align: center;
+    margin-top: 30px;
+    font-size: 14px;
+    color: #ccc;
+}
+.footer a {
+    color: #FFD700;
+    text-decoration: none;
+}
+.footer a:hover {
+    text-decoration: underline;
+}
+</style>
 """, unsafe_allow_html=True)
