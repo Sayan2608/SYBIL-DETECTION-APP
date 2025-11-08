@@ -38,7 +38,7 @@ Built to help DAOs, airdrop campaigns, and web3 communities fight Sybil attacks.
 
 ---
 
-## ⚙️ Tech Stack
+## ⚙️ Tech Stacks
 
 - 🐍 Python
 - 📦 Streamlit
